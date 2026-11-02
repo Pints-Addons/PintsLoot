@@ -1,0 +1,12 @@
+## Interface: 11508, 11509, 16001
+## Title: |cffd4a017Pint's|r Loot
+## Notes: Every dungeon and raid boss, profession recipe, PvP reward, world drop, reputation reward and collection - with a usable-gear filter, upgrade %, which of your characters own it, and a wishlist. /loot
+## Author: Jake (Pint's Add-ons, built with Claude)
+## Version: 1.0
+## X-Curse-Project-ID: 1779448
+## OptionalDeps: PintsAlts, PintsCraftUpgrades, LibDBIcon-1.0
+## SavedVariables: PintsLootDB
+
+LootData.lua
+Core.lua
+UI.lua

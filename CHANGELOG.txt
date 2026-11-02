@@ -1,0 +1,11 @@
+Pint's Loot - Changelog
+
+v1.0
+- First public release.
+- Loot browser: Dungeons & Raids (33), Professions, PvP, World Drops, Factions and Collections,
+  over 4,600 items, with drop chances, recipe sources and prices.
+- Search across all loot; "Gear I can use" filter; Shift-click to link, Ctrl-click to try on.
+- Upgrade % (with Pint's Craft Upgrades) and which of your characters own each item (with Pint's Alts).
+- Wishlist: star or Alt-click any item; shows boss and dungeon; filter by slot; all-characters view.
+- Item tooltips show where an item comes from and who has it on a wishlist.
+- Minimap button: left-click to browse, right-click for your wishlist.
