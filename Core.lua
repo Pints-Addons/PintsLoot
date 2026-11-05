@@ -11,7 +11,7 @@ _G.PintsLoot = P
 local D = PintsLootData or { cats = {}, items = {} }
 P.D, P.ITEMS = D, D.items
 
-function P.Me() return GetRealmName() or "", UnitName("player") or "" end
+function P.Me() return GetRealmName() or "", (GetUnitName and GetUnitName("player", false) or UnitName("player")) or "" end
 function P.CK() local r, n = P.Me(); return r .. "." .. n end
 function P.Faction() local f = UnitFactionGroup("player"); return f == "Horde" and 1 or 2 end
 
