@@ -5,6 +5,15 @@
 --   left:    the bosses (or skill tiers, reputation tiers...) of the chosen page
 --   right:   the items, with type, level, chance or price, upgrade %, which of your characters own it, and a wishlist star
 local ADDON, NS = ...
+-- Compatibility: WoW Forever runs on the modern game client, where these older functions moved or were renamed.
+local GetItemInfo = GetItemInfo or (C_Item and C_Item.GetItemInfo)
+local GetItemIcon = GetItemIcon or (C_Item and C_Item.GetItemIconByID)
+local GetSpellLink = GetSpellLink or (C_Spell and C_Spell.GetSpellLink)
+local GetSpellInfo = GetSpellInfo or function(s)
+	local i = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(s)
+	if i then return i.name, nil, i.iconID, i.castTime, i.minRange, i.maxRange, i.spellID, i.originalIconID end
+end
+
 local P = NS.P
 local D = P.D
 

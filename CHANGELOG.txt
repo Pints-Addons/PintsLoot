@@ -1,5 +1,9 @@
 Pint's Loot - Changelog
 
+v1.1
+- Works on WoW Forever (the modern game client). Classic Era is unchanged.
+- Uses the modern item functions where the old ones are gone.
+
 v1.0
 - First public release.
 - Loot browser: Dungeons & Raids (33), Professions, PvP, World Drops, Factions and Collections,

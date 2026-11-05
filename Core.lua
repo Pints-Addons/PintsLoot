@@ -1,6 +1,9 @@
 -- Pints Loot: shared helpers - who can use what, what your characters own, the wishlist, upgrade scores
 -- and "where does this drop" lookups for item tooltips.
 local ADDON, NS = ...
+-- Compatibility: WoW Forever runs on the modern game client, where these older functions moved or were renamed.
+local GetItemInfo = GetItemInfo or (C_Item and C_Item.GetItemInfo)
+
 local P = {}
 NS.P = P
 _G.PintsLoot = P

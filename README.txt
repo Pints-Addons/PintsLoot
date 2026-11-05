@@ -46,3 +46,7 @@ LICENSE
 
 Pint's Loot - by Jake (Pint's Add-ons), built with Claude.
 World of Warcraft names and game data are the property of Blizzard Entertainment.
+
+FEEDBACK
+  Report a bug or suggest an idea: https://github.com/Pints-Addons/PintsLoot/issues
+  Source code: https://github.com/Pints-Addons/PintsLoot
