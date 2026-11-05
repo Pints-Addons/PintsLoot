@@ -5,6 +5,17 @@
 --   left:    the bosses (or skill tiers, reputation tiers...) of the chosen page
 --   right:   the items, with type, level, chance or price, upgrade %, which of your characters own it, and a wishlist star
 local ADDON, NS = ...
+-- coins drawn with the money icons (WoW Forever's own coin text came out as bare digits: 6s 64c showed as "664")
+local GetCoinTextureString = function(v)
+	v = math.floor((tonumber(v) or 0) + 0.5)
+	local neg = v < 0; if neg then v = -v end
+	local g, s, c = math.floor(v / 10000), math.floor(v / 100) % 100, v % 100
+	local out = {}
+	if g > 0 then out[#out + 1] = g .. "|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:2:0|t" end
+	if s > 0 then out[#out + 1] = s .. "|TInterface\\MoneyFrame\\UI-SilverIcon:0:0:2:0|t" end
+	if c > 0 or #out == 0 then out[#out + 1] = c .. "|TInterface\\MoneyFrame\\UI-CopperIcon:0:0:2:0|t" end
+	return (neg and "-" or "") .. table.concat(out, " ")
+end
 -- Compatibility: WoW Forever runs on the modern game client, where these older functions moved or were renamed.
 local GetItemInfo = GetItemInfo or (C_Item and C_Item.GetItemInfo)
 local GetItemIcon = GetItemIcon or (C_Item and C_Item.GetItemIconByID)
