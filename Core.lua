@@ -139,6 +139,25 @@ function P.ToggleWish(id, src)
   local w = P.Wish()
   if w[id] then w[id] = nil else w[id] = { src = src, t = time() } end
   if P.OnChanged then P.OnChanged() end
+  if P.OnWishChanged then pcall(P.OnWishChanged, P.CK(), id) end
+end
+-- the same for any character on the account ("Realm.Name") - Pint's Alts shows and edits wishlists through these,
+-- so there's one wishlist, kept here, and both add-ons show it
+function P.IsWishedFor(ck, id) local w = PintsLootDB and PintsLootDB.wish and PintsLootDB.wish[ck]; return w and w[id] ~= nil or false end
+function P.ToggleWishFor(ck, id, src)
+  if not ck or not id or id == 0 then return end
+  local w = P.Wish(ck)
+  if w[id] then w[id] = nil else
+    if not src then local list = P.Sources(id); src = list and list[1] end
+    w[id] = { src = src, t = time() }
+  end
+  if P.OnChanged then P.OnChanged() end
+  if P.OnWishChanged then pcall(P.OnWishChanged, ck, id) end
+end
+function P.WishList(ck)
+  local out = {}
+  for id, e in pairs(PintsLootDB and PintsLootDB.wish and PintsLootDB.wish[ck] or {}) do out[#out + 1] = { id = id, src = e.src, t = e.t } end
+  return out
 end
 -- every character that wants it: { "Name", ... }
 function P.WishedBy(id)
@@ -232,4 +251,145 @@ login:RegisterEvent("PLAYER_LOGIN")
 login:SetScript("OnEvent", function()
   local _, cls = UnitClass("player")
   PintsLootDB.classes[P.CK()] = cls
+end)
+
+---------------------------------------------------------------- sharing a wishlist with another player
+-- Sent like a whisper, but as hidden add-on messages: the other player needs Pint's Loot, and is asked before it's kept.
+-- No answer within a few seconds (they don't have it): you're offered to whisper the items as plain item links instead.
+--   H:<token>:<count>:<owner>   I:<token>:<id,id,...>   E:<token>   (and back: A:<token> = got it, N:<token> = declined)
+local PREFIX = "PintsLoot"
+local SendAddon = (C_ChatInfo and C_ChatInfo.SendAddonMessage) or SendAddonMessage
+local SendChat = (C_ChatInfo and C_ChatInfo.SendChatMessage) or SendChatMessage
+if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+elseif RegisterAddonMessagePrefix then RegisterAddonMessagePrefix(PREFIX) end
+local GOLD = "|cffd4a017Pint's Loot:|r "
+local function Short(name) return ((name or ""):gsub("%-.*$", "")):lower() end
+local outgoing, incoming = {}, {}
+
+-- the whispered fallback: the items as links, a few per line
+local function WhisperLinks(target, ids, owner)
+  SendChat(("%s's wishlist (Pint's Loot):"):format(owner), "WHISPER", nil, target)
+  local line = ""
+  for _, id in ipairs(ids) do
+    local _, link = GetItemInfo(id)
+    link = link or ("[item " .. id .. "]")
+    if #line + #link + 1 > 240 then SendChat(line, "WHISPER", nil, target); line = "" end
+    line = line .. (line ~= "" and " " or "") .. link
+  end
+  if line ~= "" then SendChat(line, "WHISPER", nil, target) end
+end
+
+function P.ShareWish(ck, target)
+  target = (target or ""):gsub("^%s+", ""):gsub("%s+$", "")
+  if target == "" then return end
+  local ids = {}
+  for id in pairs(PintsLootDB.wish[ck] or {}) do ids[#ids + 1] = id end
+  table.sort(ids)
+  local owner = (ck or ""):match("%.(.+)$") or "?"
+  if #ids == 0 then print(GOLD .. owner .. "'s wishlist is empty - nothing to share."); return end
+  local tok = tostring(math.random(10000, 99999))
+  SendAddon(PREFIX, ("H:%s:%d:%s"):format(tok, #ids, owner), "WHISPER", target)
+  local chunk = {}
+  local function flush() if #chunk > 0 then SendAddon(PREFIX, "I:" .. tok .. ":" .. table.concat(chunk, ","), "WHISPER", target); chunk = {} end end
+  for _, id in ipairs(ids) do chunk[#chunk + 1] = id; if #chunk >= 30 then flush() end end
+  flush()
+  SendAddon(PREFIX, "E:" .. tok, "WHISPER", target)
+  for _, id in ipairs(ids) do if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(id) end end
+  local o = { tok = tok, target = target, ids = ids, owner = owner }
+  outgoing[Short(target)] = o
+  print(GOLD .. ("sending %s's wishlist (%d items) to %s..."):format(owner, #ids, target))
+  C_Timer.After(5, function()
+    if outgoing[Short(target)] ~= o or o.answered then return end
+    outgoing[Short(target)] = nil
+    StaticPopup_Show("PINTSLOOT_SHARE_NOADDON", target, nil, o)
+  end)
+end
+
+-- ask who to send it to (your target's name filled in)
+function P.AskShare(ck)
+  ck = ck or P.CK()
+  local who = UnitIsPlayer("target") and UnitIsFriend("player", "target") and GetUnitName("target", true) or ""
+  local d = StaticPopup_Show("PINTSLOOT_SHARE_OUT", ck:match("%.(.+)$") or "", nil, { ck = ck })
+  if d then
+    local eb = d.editBox or (d.GetEditBox and d:GetEditBox())
+    if eb then eb:SetText(who); eb:HighlightText() end
+  end
+end
+
+local function PopupEdit(self) return self.editBox or (self.GetEditBox and self:GetEditBox()) end
+StaticPopupDialogs["PINTSLOOT_SHARE_OUT"] = {
+  text = "Share %s's wishlist with which player?\n|cff909090(they need Pint's Loot - or it can go as item links)|r",
+  button1 = "Send", button2 = CANCEL or "Cancel", hasEditBox = true, maxLetters = 60,
+  OnAccept = function(self, data) P.ShareWish(data.ck, PopupEdit(self):GetText()) end,
+  EditBoxOnEnterPressed = function(self) local p = self:GetParent(); P.ShareWish(p.data.ck, self:GetText()); p:Hide() end,
+  EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+  timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+}
+StaticPopupDialogs["PINTSLOOT_SHARE_NOADDON"] = {
+  text = "%s didn't answer - they may not have Pint's Loot.\nWhisper the wishlist to them as item links instead?",
+  button1 = "Whisper links", button2 = CANCEL or "Cancel",
+  OnAccept = function(self, o) WhisperLinks(o.target, o.ids, o.owner) end,
+  timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+}
+StaticPopupDialogs["PINTSLOOT_SHARE_IN"] = {
+  text = "%s wants to share %s with you.\nKeep it in your Pint's Loot wishlist tab?",
+  button1 = "Keep it", button2 = "No thanks",
+  OnAccept = function(self, x)
+    PintsLootDB.shared = PintsLootDB.shared or {}
+    PintsLootDB.shared[x.from] = { owner = x.owner, ids = x.ids, t = time() }
+    SendAddon(PREFIX, "A:" .. x.tok, "WHISPER", x.from)
+    if P.OnChanged then P.OnChanged() end
+    if P.Toggle then P.Toggle("wish") end
+  end,
+  OnCancel = function(self, x) SendAddon(PREFIX, "N:" .. x.tok, "WHISPER", x.from) end,
+  timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
+}
+
+-- lists other players shared with you: { {from, owner, ids, t}, ... }
+function P.SharedLists()
+  local out = {}
+  for from, s in pairs(PintsLootDB and PintsLootDB.shared or {}) do out[#out + 1] = { from = from, owner = s.owner, ids = s.ids or {}, t = s.t } end
+  table.sort(out, function(a, b) return (a.t or 0) > (b.t or 0) end)
+  return out
+end
+function P.ForgetShared(from)
+  if PintsLootDB.shared then PintsLootDB.shared[from] = nil end
+  if P.OnChanged then P.OnChanged() end
+end
+
+local msgEv = CreateFrame("Frame")
+msgEv:RegisterEvent("CHAT_MSG_ADDON")
+msgEv:SetScript("OnEvent", function(_, _, prefix, msg, channel, sender)
+  if prefix ~= PREFIX or channel ~= "WHISPER" or type(msg) ~= "string" then return end
+  local kind, tok, rest = msg:match("^(%u):(%d+):?(.*)$")
+  if not kind then return end
+  if kind == "H" then
+    local n, owner = rest:match("^(%d+):(.+)$")
+    incoming[sender] = { tok = tok, n = tonumber(n) or 0, owner = owner or "?", ids = {} }
+  elseif kind == "I" then
+    local x = incoming[sender]
+    if x and x.tok == tok then
+      for id in rest:gmatch("%d+") do if #x.ids < 300 then x.ids[#x.ids + 1] = tonumber(id) end end
+    end
+  elseif kind == "E" then
+    local x = incoming[sender]
+    incoming[sender] = nil
+    if x and x.tok == tok and #x.ids > 0 then
+      x.from = sender
+      SendAddon(PREFIX, "R:" .. tok, "WHISPER", sender)      -- (arrived: they have Pint's Loot, now they decide)
+      for _, id in ipairs(x.ids) do if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(id) end end
+      local what = (Short(x.owner) == Short(sender)) and ("their wishlist (" .. #x.ids .. " items)")
+        or (x.owner .. "'s wishlist (" .. #x.ids .. " items)")
+      StaticPopup_Show("PINTSLOOT_SHARE_IN", (sender:gsub("%-.*$", "")), what, x)
+    end
+  elseif kind == "R" then
+    local o = outgoing[Short(sender)]
+    if o and o.tok == tok then o.answered = true; print(GOLD .. (sender:gsub("%-.*$", "")) .. " got it - waiting for them to accept.") end
+  elseif kind == "A" or kind == "N" then
+    local o = outgoing[Short(sender)]
+    if o and o.tok == tok then
+      outgoing[Short(sender)] = nil
+      print(GOLD .. (sender:gsub("%-.*$", "")) .. (kind == "A" and " has your wishlist now." or " said no thanks."))
+    end
+  end
 end)

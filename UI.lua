@@ -252,6 +252,23 @@ local function BuildWishlist()
     if #list > 0 then out[#out + 1] = { head = "|c" .. ClassHex(db().classes[ck]) .. name .. "|r's wishlist" .. (wishSlot and (" - " .. wishSlot) or ""), n = #list } end
     for _, e in ipairs(list) do out[#out + 1] = e end
   end
+  -- wishlists other players shared with you
+  for _, sh in ipairs(P.SharedLists and P.SharedLists() or {}) do
+    local list = {}
+    for _, id in ipairs(sh.ids) do
+      local slot = SlotOf(id)
+      wishSlots[slot] = (wishSlots[slot] or 0) + 1
+      if not wishSlot or wishSlot == slot then
+        local src = P.Sources(id)
+        list[#list + 1] = { id = id, src = src and src[1], who = "shared", shared = sh.from }
+      end
+    end
+    if #list > 0 then
+      local from = sh.from:gsub("%-.*$", "")
+      out[#out + 1] = { head = "|cff80c0ff" .. sh.owner .. "|r's wishlist  |cff909090(shared by " .. from .. " - right-click to remove)|r", n = #list, shared = sh.from }
+      for _, e in ipairs(list) do out[#out + 1] = e end
+    end
+  end
   if #out == 0 and wishSlot then out[1] = { head = "Nothing on your wishlist for " .. wishSlot .. "." }
   elseif #out == 0 then out[1] = { head = "Your wishlist is empty - click the star on any item (or Alt-click it) to add it." } end
   return out
@@ -286,6 +303,7 @@ local function RowClick(r, btn)
   local e = r.e
   if not e then return end
   if e.head then
+    if e.shared and btn == "RightButton" then P.ForgetShared(e.shared); return end
     if tab == "loot" and searchText == "" and r.gi then groupIdx = (groupIdx == r.gi) and nil or r.gi; NS.Refresh() end
     return
   end
@@ -475,6 +493,7 @@ function NS.Refresh()
   win.sub:SetText(tab == "wish" and "Items your characters are hoping for" or (page and page[2] or ""))
   win.factionChk:SetShown(tab == "loot" and cat and cat[1] == "PvP" and true or false)
   win.wishAll:SetShown(tab == "wish")
+  if win.share then win.share:SetShown(tab == "wish") end
   win.catBtn:SetShown(tab == "loot"); win.pageBtn:SetShown(tab == "loot"); win.prevB:SetShown(tab == "loot"); win.nextB:SetShown(tab == "loot")
   for k, t in pairs(win.tabs) do t.sel:SetShown(k == tab) end
   local list = (tab == "wish") and BuildWishlist() or (searchText ~= "" and BuildSearch()) or BuildLoot()
@@ -557,6 +576,7 @@ local function CreateWindow()
   local title = win:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge"); title:SetPoint("LEFT", logo, "RIGHT", 10, 6); title:SetText("Pint's Loot")
   win.sub = win:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); win.sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 1, -2)
   local close = CreateFrame("Button", nil, win, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", -6, -6)
+  close:SetScript("OnClick", function() win:Hide() end)   -- (hide it directly: the game's own close goes through a path combat can block)
 
   -- the two drop-downs, with arrows to step through the second
   win.catBtn = DropButton(win, 170); win.catBtn:SetPoint("TOPLEFT", 260, -20)
@@ -649,6 +669,16 @@ local function CreateWindow()
   foot:SetPoint("BOTTOMLEFT", NAVW + 8, 0); foot:SetPoint("BOTTOMRIGHT", 0, 0); foot:SetHeight(26)
   foot:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" }); foot:SetBackdropColor(1, 0.82, 0, 0.06)
   win.footer = foot:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); win.footer:SetPoint("LEFT", 10, 0)
+  -- share your wishlist with another player (they get it in their Pint's Loot, or as whispered item links)
+  win.share = CreateFrame("Button", nil, foot, "UIPanelButtonTemplate"); win.share:SetSize(150, 20); win.share:SetPoint("RIGHT", -6, 0)
+  win.share:SetText("Share my wishlist...")
+  win.share:SetScript("OnClick", function() P.AskShare(P.CK()) end)
+  win.share:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP"); GameTooltip:AddLine("Share your wishlist")
+    GameTooltip:AddLine("Send it to another player, like a whisper. With Pint's Loot they can keep it here; without it, you can whisper the items as links.", 1, 1, 1, true)
+    GameTooltip:Show()
+  end)
+  win.share:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   -- bottom tabs
   win.tabs = {}
@@ -686,6 +716,12 @@ local function CreateWindow()
   win:Hide()
 end
 
+-- a fight starts: get out of the way (/loot combat keeps it open instead)
+do
+  local f = CreateFrame("Frame"); f:RegisterEvent("PLAYER_REGEN_DISABLED")
+  f:SetScript("OnEvent", function() if win and win:IsShown() and not db().keepInCombat then win:Hide() end end)
+end
+
 function P.Toggle(where)
   if not win then
     CreateWindow()
@@ -702,7 +738,13 @@ SLASH_PINTSLOOT1 = "/loot"
 SLASH_PINTSLOOT2 = "/ploot"
 SlashCmdList.PINTSLOOT = function(msg)
   msg = (msg or ""):lower()
-  if msg == "wish" or msg == "wishlist" then P.Toggle("wish")
+  if msg == "combat" then
+    db().keepInCombat = not db().keepInCombat
+    print("|cffd4a017Pint's Loot:|r " .. (db().keepInCombat and "stays open in combat." or "closes when a fight starts."))
+  elseif msg:match("^share") then
+    local who = msg:match("^share%s+(.+)$")
+    if who then P.ShareWish(P.CK(), who) else P.AskShare(P.CK()) end
+  elseif msg == "wish" or msg == "wishlist" then P.Toggle("wish")
   elseif msg == "here" then P.Toggle("here")
   else P.Toggle() end
 end

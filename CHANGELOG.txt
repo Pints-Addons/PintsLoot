@@ -1,5 +1,14 @@
 Pint's Loot - Changelog
 
+v1.1.3
+- Share your wishlist with another player, like a whisper: "Share my wishlist..." on the Wishlist tab (or /loot share
+  Name). With Pint's Loot they're asked to keep it, and it shows on their Wishlist tab (right-click its heading to
+  remove it). Without Pint's Loot you're offered to whisper the items to them as item links.
+- The window closes when a fight starts, so it never hides what's attacking you (/loot combat keeps it open), and the
+  close button always works in combat (on WoW Forever it could be blocked).
+- The wishlist is shared with Pint's Alts: its Character tab has a Wishlist button (any character's list), and stars in
+  its gear picker add items. Changes show in both add-ons straight away.
+
 v1.1.2
 - WoW Forever: money shows with the gold, silver and copper icons (the game's own coin text showed bare digits).
 
