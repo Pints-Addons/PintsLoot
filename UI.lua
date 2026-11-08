@@ -410,7 +410,7 @@ local function FillItem(r, e, odd)
   elseif e.craft then s = "|cffffd100" .. e.craft[3] .. "|r  |cffb0b0b0" .. (SRC[e.craft[4]] or "") .. "|r"
   elseif e.price then s = Money(e.price)
   elseif e.note then s = "|cffb0b0b0" .. e.note .. "|r"
-  elseif e.chance then s = e.chance > 0 and (e.chance .. "%") or "|cffb0b0b0rare|r" end
+  elseif e.chance then s = (e.chance > 0 and (e.chance .. "%")) or (e.chance == 0 and "|cffb0b0b0rare|r") or "" end
   FitText(r.cells[4], s)
   -- upgrade
   local pct, empty = P.Upgrade(id)

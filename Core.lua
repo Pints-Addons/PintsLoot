@@ -116,7 +116,7 @@ function P.HasLedger() return _G.PintsLedger and _G.PintsLedger.Characters and t
 local upCache = {}
 function P.Upgrade(id)
   local S = _G.CraftUpgradesScore
-  if not (S and S.Upgrade) or not P.IsGear(id) or not P.Usable(id) then return nil end
+  if not (S and S.Upgrade) or not id or id <= 0 or not P.IsGear(id) or not P.Usable(id) then return nil end
   if upCache[id] ~= nil then return upCache[id][1], upCache[id][2] end
   local _, link = GetItemInfo(id)
   if not link then
@@ -229,6 +229,85 @@ function P.HookTooltips()
   end
 end
 
+---------------------------------------------------------------- learning item numbers (WoW Forever's new dungeons)
+-- Those items start as stand-ins named from the loot sites (ForeverData.lua). When the game shows you the real item -
+-- a loot window, a chat link, a tooltip - its number is learned (and kept), and the stand-in becomes the real item:
+-- icon, tooltip, upgrade %, owners and wishlist then all work.
+local F = _G.PintsLootForever
+local function Refine(id)
+  local it = D.items[id]
+  if not it then return end
+  local name, _, q, _, req, _, _, _, _, _, _, cls, sub = GetItemInfo(id)
+  if not name then
+    if C_Item and C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, id) end
+    return
+  end
+  it[4] = q or it[4]; it[3] = req or it[3]
+  if cls and sub then it[2] = cls * 100 + sub end
+  local inv = C_Item and C_Item.GetItemInventoryTypeByID and C_Item.GetItemInventoryTypeByID(id)
+  if type(inv) == "number" then it[1] = inv end
+  it.refined = true
+end
+local function Replace(syn, real)
+  for _, page in ipairs(F.pages) do
+    for _, g in ipairs(page[3]) do
+      local l = g[4]
+      for x = 1, #l, 2 do if l[x] == syn then l[x] = real end end
+    end
+  end
+  if not D.items[real] then local t = D.items[syn]; D.items[real] = { t[1], t[2], t[3], t[4], t[5], t[6], forever = true } end
+  F.byName[F.names[syn]] = real
+  srcIndex = nil; wipe(upCache)
+end
+function P.Learn(id, name)
+  if not F or type(id) ~= "number" or id <= 0 or type(name) ~= "string" then return end
+  if issecretvalue and (issecretvalue(id) or issecretvalue(name)) then return end
+  local syn = F.byName[name]
+  if not syn or syn > 0 then return end
+  PintsLootDB.learned = PintsLootDB.learned or {}
+  PintsLootDB.learned[name] = id
+  Replace(syn, id); Refine(id)
+  if NS.Refresh then pcall(NS.Refresh) end
+end
+local function LearnText(msg)
+  if type(msg) ~= "string" or (issecretvalue and issecretvalue(msg)) then return end
+  for id, name in msg:gmatch("|Hitem:(%d+)[^|]*|h%[(.-)%]|h") do P.Learn(tonumber(id), name) end
+end
+P.LearnText = LearnText
+-- the ones the game already knows by name (seen this session or before)
+local function LearnByName()
+  if not F then return end
+  for name, id in pairs(F.byName) do
+    if id < 0 then local _, link = GetItemInfo(name); if link then LearnText(link) end end
+  end
+end
+if F then
+  local lf = CreateFrame("Frame")
+  for _, e in ipairs({ "CHAT_MSG_LOOT", "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER", "CHAT_MSG_PARTY",
+      "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_WHISPER",
+      "CHAT_MSG_CHANNEL", "LOOT_OPENED", "GET_ITEM_INFO_RECEIVED", "PLAYER_LOGIN" }) do pcall(lf.RegisterEvent, lf, e) end
+  lf:SetScript("OnEvent", function(_, e, a1)
+    if e == "LOOT_OPENED" then
+      for i = 1, (GetNumLootItems and GetNumLootItems()) or 0 do LearnText(GetLootSlotLink and GetLootSlotLink(i)) end
+    elseif e == "GET_ITEM_INFO_RECEIVED" then
+      local it = type(a1) == "number" and D.items[a1]
+      if it and it.forever and not it.refined then Refine(a1); if NS.Refresh then pcall(NS.Refresh) end end
+    elseif e == "PLAYER_LOGIN" then
+      C_Timer.After(8, LearnByName)
+    else
+      LearnText(a1)
+    end
+  end)
+  -- any item tooltip you look at
+  if TooltipDataProcessor and Enum and Enum.TooltipDataType then
+    pcall(TooltipDataProcessor.AddTooltipPostCall, Enum.TooltipDataType.Item, function(tt)
+      if not tt.GetItem then return end
+      local ok, name, link = pcall(tt.GetItem, tt)
+      if ok then LearnText(link) end
+    end)
+  end
+end
+
 ---------------------------------------------------------------- saved data
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("ADDON_LOADED"); ev:RegisterEvent("PLAYER_EQUIPMENT_CHANGED"); ev:RegisterEvent("PLAYER_LEVEL_UP")
@@ -241,6 +320,14 @@ ev:SetScript("OnEvent", function(_, event, a1)
     if db.usable == nil then db.usable = false end
     if db.tooltips == nil then db.tooltips = true end
     P.HookTooltips()
+    -- item numbers learned before (WoW Forever's new dungeons)
+    if F then
+      db.learned = db.learned or {}
+      for name, id in pairs(db.learned) do
+        local syn = F.byName[name]
+        if syn and syn < 0 then Replace(syn, id); D.items[id].forever = true end
+      end
+    end
   else
     wipe(upCache)
     if P.OnChanged then P.OnChanged() end
