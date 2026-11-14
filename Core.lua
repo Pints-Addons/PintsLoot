@@ -279,6 +279,7 @@ local function LearnByName()
   if not F then return end
   for name, id in pairs(F.byName) do
     if id < 0 then local _, link = GetItemInfo(name); if link then LearnText(link) end end
+    if id > 0 and D.items[id] and not D.items[id].refined then Refine(id) end   -- (known numbers: ask the game for the details)
   end
 end
 if F then

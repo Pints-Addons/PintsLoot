@@ -1,5 +1,14 @@
 Pint's Loot - Changelog
 
+v1.1.5
+- WoW Forever: fuller loot tables for all the new dungeons - every boss's known drops, rares and hidden bosses
+  marked, a Quest rewards group for each dungeon, and new bosses: War Handler Ashka (Krol'dok), Captain Dreadrise,
+  Primeval Elemental, Var'Taka, Deathless Marrow, Min'loth and Umbra (Drowned City), Zarla Ober (Alcaz Prison) and the
+  8 bosses of Blackmaw Hold. Shaper's Terrace has no loot found yet.
+- Items whose numbers are published (Hall of Thanes, Ruins of Lordaeron, Excavation Site, City of Dalaran, Krol'dok)
+  now start as the real item, so their icon, type, required level and tooltip show straight away instead of a
+  question mark. The rest still fill in once the game shows them to you.
+
 v1.1.4
 - WoW Forever: the 9 new dungeons are in the list (Hall of Thanes, Ruins of Lordaeron, Excavation Site: Wetlands, City of
   Dalaran, The Drowned City, Krol'dok Stronghold, Alcaz Prison, Blackmaw Hold, Shaper's Terrace) with the boss loot
