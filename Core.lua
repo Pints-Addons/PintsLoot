@@ -176,7 +176,7 @@ local srcIndex
 local function Index()
   srcIndex = {}
   for _, cat in ipairs(D.cats) do
-    for _, page in ipairs(cat[2]) do
+    for _, page in ipairs((cat.hidden and not (PintsLootDB and PintsLootDB.unconfirmed)) and {} or cat[2]) do
       for _, g in ipairs(page[3]) do
         local kind, list = g[2], g[4]
         local step = (kind == 2) and 5 or 2

@@ -1,5 +1,27 @@
 Pint's Loot - Changelog
 
+v1.1.6
+- WoW Forever: PvP is Forever's - what the PvP vendors sell there (Wowhead's WoW Forever NPC pages): a new Honor
+  Quartermasters page (the armor, accessories, weapons and mount quartermasters in the capitals, Alliance and Horde),
+  Forever's prices on the battleground and rank pages (gold, or honor plus battleground marks), and what Forever added
+  to Warsong Gulch and Arathi Basin. PvP items no Forever vendor sells move to "Not confirmed on Forever".
+- WoW Forever: every dungeon and raid boss's loot now comes from Wowhead's WoW Forever database (the same tables as
+  Pint's Dungeon Journal), with real drop chances - the old dungeons no longer show Classic loot, and the new dungeons
+  show real items instead of stand-ins. Classic Era keeps the Classic tables.
+- WoW Forever: Professions lists every recipe Forever has, for all nine professions (2,176), by the skill it's learned
+  at, with how it's learned - the same data as Pint's Professions and Recipe Sources.
+- WoW Forever: Collections lists Forever's mounts, companions, tabards and legendaries, and a new WoW Forever Sets page
+  (Rotmender's Raiment, Violet Sorcerer's Vestments, Krol'dok Battlegear and the rest).
+- WoW Forever: Factions adds a page for each reputation Forever added (Durotar Supply and Logistics, Azeroth Commerce
+  Authority, The Watchers, Kirin Tor, Earthen Ring, Nightclaw Druids, Theramore Expeditionary Force, Darkspear Raiders,
+  Guardians of Hyjal, the Steamwheedle towns...) and Forever's new rewards on the Classic ones; PvP adds Forever's
+  Arathi Basin rewards. From Wowhead's WoW Forever faction pages.
+- WoW Forever: the last 51 items the new dungeons showed by name only (Blackmaw Hold's bosses, the Alcaz Prison and
+  Drowned City quest rewards) are the real items now, found on Wowhead's WoW Forever database.
+- WoW Forever: what only the Classic data has - raids that haven't opened, the world bosses' Classic tables, the Classic PvP
+  lists, reputation rewards and sets Wowhead's WoW Forever pages don't show - waits out of sight in a "Not confirmed on
+  Forever" category. "Show Classic-only data" at the bottom of the category menu brings it into view.
+
 v1.1.5
 - WoW Forever: fuller loot tables for all the new dungeons - every boss's known drops, rares and hidden bosses
   marked, a Quest rewards group for each dungeon, and new bosses: War Handler Ashka (Krol'dok), Captain Dreadrise,

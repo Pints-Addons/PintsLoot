@@ -63,6 +63,20 @@ local searchText = ""
 
 local function db() return PintsLootDB end
 local function Money(c) return (c and c > 0 and GetCoinTextureString) and GetCoinTextureString(c) or "" end
+-- a WoW Forever PvP price: { copper, honor, markItem, count, ... }
+local MARK = { [20558] = "WSG", [20559] = "AB", [20560] = "AV" }
+local function Cost(c)
+  if type(c) ~= "table" then return Money(c) end
+  local parts = {}
+  if (c[1] or 0) > 0 then parts[#parts + 1] = Money(c[1]) end
+  if (c[2] or 0) > 0 then parts[#parts + 1] = c[2] .. " honor" end
+  for x = 3, #c, 2 do
+    local n = MARK[c[x]] or (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(c[x])) or (GetItemInfo and GetItemInfo(c[x]))
+    if issecretvalue and n and issecretvalue(n) then n = nil end
+    parts[#parts + 1] = c[x + 1] .. " " .. (n and (MARK[c[x]] and (n .. " marks") or n) or "marks")
+  end
+  return table.concat(parts, " + ")
+end
 local function QColor(q)
   local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q or 1]
   if c then return c.r, c.g, c.b end
@@ -408,7 +422,7 @@ local function FillItem(r, e, odd)
     else s = "|cffb0b0b0" .. src .. "|r" end
   elseif searchText ~= "" and tab == "loot" then s = "|cffb0b0b0" .. (e.src or "") .. "|r"
   elseif e.craft then s = "|cffffd100" .. e.craft[3] .. "|r  |cffb0b0b0" .. (SRC[e.craft[4]] or "") .. "|r"
-  elseif e.price then s = Money(e.price)
+  elseif e.price then s = Cost(e.price)
   elseif e.note then s = "|cffb0b0b0" .. e.note .. "|r"
   elseif e.chance then s = (e.chance > 0 and (e.chance .. "%")) or (e.chance == 0 and "|cffb0b0b0rare|r") or "" end
   FitText(r.cells[4], s)
@@ -582,8 +596,21 @@ local function CreateWindow()
   win.catBtn = DropButton(win, 170); win.catBtn:SetPoint("TOPLEFT", 260, -20)
   win.catBtn:SetScript("OnClick", function(self)
     local items = {}
-    for c, cat in ipairs(D.cats) do items[#items + 1] = { text = cat[1], value = c, sel = (c == catIdx) } end
-    ShowMenu(self, items, function(v) if v ~= catIdx then SetPage(v, (v == 1) and select(2, DefaultPage()) or 1) end end)
+    local hidden = false
+    for c, cat in ipairs(D.cats) do
+      if cat.hidden then hidden = true end
+      if not cat.hidden or db().unconfirmed then items[#items + 1] = { text = (cat.hidden and "|cff909090" or "") .. cat[1] .. (cat.hidden and "|r" or ""), value = c, sel = (c == catIdx) } end
+    end
+    -- (WoW Forever: what only the Classic data has waits in a hidden category until it's confirmed on Forever)
+    if hidden then items[#items + 1] = { text = "|cff909090" .. (db().unconfirmed and "Hide" or "Show") .. " Classic-only data|r", value = -1 } end
+    ShowMenu(self, items, function(v)
+      if v == -1 then
+        db().unconfirmed = not db().unconfirmed
+        if not db().unconfirmed and D.cats[catIdx] and D.cats[catIdx].hidden then SetPage(DefaultPage()) else NS.Refresh() end
+        return
+      end
+      if v ~= catIdx then SetPage(v, (v == 1) and select(2, DefaultPage()) or 1) end
+    end)
   end)
   win.prevB = SmallButton(win, "<", 26); win.prevB:SetPoint("LEFT", win.catBtn, "RIGHT", 8, 0)
   win.prevB:SetScript("OnClick", function() StepPage(-1) end)
@@ -726,7 +753,7 @@ function P.Toggle(where)
   if not win then
     CreateWindow()
     local ui = db().ui
-    if ui.cat and D.cats[ui.cat] and D.cats[ui.cat][2][ui.page or 0] then catIdx, pageIdx = ui.cat, ui.page
+    if ui.cat and D.cats[ui.cat] and D.cats[ui.cat][2][ui.page or 0] and not (D.cats[ui.cat].hidden and not db().unconfirmed) then catIdx, pageIdx = ui.cat, ui.page
     else catIdx, pageIdx = DefaultPage() end
   end
   if where == "here" then catIdx, pageIdx = DefaultPage(); groupIdx = nil; tab = "loot" end
