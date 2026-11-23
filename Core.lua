@@ -36,7 +36,14 @@ local function Can()
 end
 -- this class may wear or wield it (a level requirement doesn't count against it); non-gear is always "usable"
 function P.Usable(id)
-  local it = P.ITEMS[id]; if not it then return true end
+  local it = P.ITEMS[id]
+  -- gear made for other classes only ("Classes: Priest"), when the data has no class list for it (WoW Forever's items)
+  local CS = _G.CraftUpgradesScore
+  if (not it or not it[5] or it[5] == 0) and CS and CS.ClassOK and id then
+    local _, cls = UnitClass("player")
+    if cls and not CS.ClassOK(id, cls) then return false end
+  end
+  if not it then return true end
   local c = Can()
   local mask = it[5]
   if mask and mask > 0 and c.bit > 0 and math.floor(mask / c.bit) % 2 == 0 then return false end

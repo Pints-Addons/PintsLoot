@@ -1,5 +1,9 @@
 Pint's Loot - Changelog
 
+v1.1.7
+- Gear made for other classes only ("Classes: Priest") counts as not usable for your class - WoW Forever's items too,
+  read from the item itself when the data has no class list (with Pint's Craft Upgrades).
+
 v1.1.6
 - WoW Forever: PvP is Forever's - what the PvP vendors sell there (Wowhead's WoW Forever NPC pages): a new Honor
   Quartermasters page (the armor, accessories, weapons and mount quartermasters in the capitals, Alliance and Horde),
