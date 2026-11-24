@@ -1,5 +1,10 @@
 Pint's Loot - Changelog
 
+v1.1.8
+- Hunters can't use thrown weapons (warriors and rogues only): thrown weapons are no longer suggested or counted as
+  usable for hunters.
+- WoW Forever: a realm reported blank at login no longer files wish lists and loot under no realm.
+
 v1.1.7
 - Gear made for other classes only ("Classes: Priest") counts as not usable for your class - WoW Forever's items too,
   read from the item itself when the data has no class list (with Pint's Craft Upgrades).
