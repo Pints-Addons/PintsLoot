@@ -1,5 +1,10 @@
 Pint's Loot - Changelog
 
+v1.1.10
+- Professions page: recipes whose item isn't in the loot list (most crafted goods, and WoW Forever's new items) show
+  the item's name, quality and type instead of "Item 4357" - the recipe's name at first, the item's own once the game
+  has it.
+
 v1.1.9
 - Hunters can use thrown weapons after all (a hunter trained Thrown in game): they're suggested and counted as
   usable for hunters again, as before the last version.

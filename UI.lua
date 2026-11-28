@@ -386,7 +386,19 @@ local function FillItem(r, e, odd)
     local sn, _, sicon = GetSpellInfo and GetSpellInfo(e.craft[1])
     name, icon, q = sn or ("Spell " .. e.craft[1]), sicon, 1
   else
-    name, q = it and it[6] or ("Item " .. tostring(id)), it and it[4] or 1
+    name, q = it and it[6], it and it[4] or 1
+    if not name and id and id > 0 then
+      -- not in our loot list (most crafted goods, WoW Forever's new items): ask the game, and meanwhile use the recipe's
+      -- name, which is almost always the item's ("Rough Blasting Powder")
+      local gn, _, gq = GetItemInfo(id)
+      if gn then name, q = gn, gq or 1
+      else
+        if C_Item and C_Item.RequestLoadItemDataByID then pcall(C_Item.RequestLoadItemDataByID, id) end
+        local sn = e.craft and e.craft[1] and GetSpellInfo and GetSpellInfo(e.craft[1])
+        name = sn or ("Item " .. tostring(id))
+      end
+    end
+    name = name or ("Item " .. tostring(id))
     icon = (GetItemIcon and id and id > 0) and GetItemIcon(id) or nil
   end
   r.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark"); r.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93); r.icon:Show()
@@ -404,7 +416,9 @@ local function FillItem(r, e, odd)
   nc:SetTextColor(QColor(q))
   if not usable then r.cells[1]:SetTextColor(0.55, 0.55, 0.55) end
   -- type
-  r.cells[2]:SetText((e.craft and e.craft[2] == 0) and "Enchant" or e.kindText or (id and P.Kind(id) or "")); r.cells[2]:SetTextColor(0.8, 0.8, 0.8)
+  local kind = (e.craft and e.craft[2] == 0) and "Enchant" or e.kindText or (id and P.Kind(id) or "")
+  if kind == "" and id and id > 0 then kind = select(6, GetItemInfo(id)) or "" end   -- (the game's own type, once it knows the item)
+  r.cells[2]:SetText(kind); r.cells[2]:SetTextColor(0.8, 0.8, 0.8)
   -- required level
   local req = (it and not (e.craft and e.craft[2] == 0)) and it[3] or 0
   r.cells[3]:SetText(req > 0 and ((req > lvl and "|cffff4040" or "|cffffffff") .. req .. "|r") or "")
